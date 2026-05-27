@@ -27,19 +27,37 @@
         "backgroundColor": "#0D1B2A"
       },
       "package": "com.rebocar.driver",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDp-vWEDpaRwaOp1B2QWCknVVsmEmVYF8c"
+        }
+      },
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "gradleVersion": "8.6",
+            "kotlinVersion": "1.9.24"
+          }
+        }
+      ],
       [
         "expo-location",
         {
@@ -59,6 +77,11 @@
           "color": "#F5C518"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "168b93a8-9a61-400a-be7c-e0827c690b7d"
+      }
+    }
   }
 }
