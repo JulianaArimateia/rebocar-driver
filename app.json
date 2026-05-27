@@ -1,0 +1,64 @@
+{
+  "expo": {
+    "name": "ReboCar Driver",
+    "slug": "rebocar-driver",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0D1B2A"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.rebocar.driver",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "ReboCar Driver precisa da sua localização para enviar solicitações próximas.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "ReboCar Driver precisa da sua localização para o modo online.",
+        "NSCameraUsageDescription": "ReboCar Driver precisa da câmera para documentar o serviço.",
+        "NSPhotoLibraryUsageDescription": "ReboCar Driver precisa da galeria para enviar fotos da CNH e serviços."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0D1B2A"
+      },
+      "package": "com.rebocar.driver",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "ReboCar Driver precisa da sua localização."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "ReboCar Driver precisa da câmera."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#F5C518"
+        }
+      ]
+    ]
+  }
+}
