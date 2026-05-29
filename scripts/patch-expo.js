@@ -25,7 +25,7 @@ def safeExtGet(String prop, Object fallback) {
 }
 
 group = 'host.exp.exponent'
-version = '56.0.5'
+version = '12.0.10'
 
 android {
     namespace "expo.modules.font"
@@ -34,7 +34,7 @@ android {
         minSdkVersion safeExtGet('minSdkVersion', 23)
         targetSdkVersion safeExtGet('targetSdkVersion', 34)
         versionCode 29
-        versionName "56.0.5"
+        versionName "12.0.10"
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
