@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    name: Build Debug APK
+    name: Build Release APK
     runs-on: ubuntu-latest
 
     steps:
@@ -45,21 +45,30 @@ jobs:
       - name: Fix Gradle wrapper to 8.6
         run: sed -i 's/gradle-[0-9.]*-all\.zip/gradle-8.6-all.zip/' android/gradle/wrapper/gradle-wrapper.properties
 
-      - name: Enable JS bundle in debug APK
-        run: sed -i '/react {/a\    bundleInDebug = true' android/app/build.gradle
+      - name: Create signing keystore
+        run: |
+          keytool -genkeypair \
+            -keystore android/app/debug.keystore \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 \
+            -validity 10000 \
+            -storepass android \
+            -keypass android \
+            -dname "CN=Android Debug,O=Android,C=US" \
+            -noprompt
 
       - name: Set Android SDK path
         run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
-      - name: Build debug APK
+      - name: Build release APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleRelease --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ReboCar-Driver-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: ReboCar-Driver-release
+          path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 7
