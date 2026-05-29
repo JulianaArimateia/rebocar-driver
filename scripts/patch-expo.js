@@ -46,7 +46,9 @@ android {
 }
 
 dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.24"
     implementation 'com.facebook.react:react-android'
+    implementation project(':expo-modules-core')
 }
 `;
     fs.writeFileSync(expoFontGradle, patched);
