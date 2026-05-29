@@ -35,7 +35,7 @@ jobs:
           key: gradle-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
 
       - name: Install dependencies (runs postinstall patches)
-        run: rm -f package-lock.json && npm install
+        run: npm install
 
       - name: Expo prebuild
         run: npx expo prebuild --clean --non-interactive --platform android
