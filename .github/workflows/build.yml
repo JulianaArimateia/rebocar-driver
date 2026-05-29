@@ -45,18 +45,11 @@ jobs:
       - name: Fix Gradle wrapper to 8.6
         run: sed -i 's/gradle-[0-9.]*-all\.zip/gradle-8.6-all.zip/' android/gradle/wrapper/gradle-wrapper.properties
 
+      - name: Enable JS bundle in debug APK
+        run: sed -i '/react {/a\    bundleInDebug = true' android/app/build.gradle
+
       - name: Set Android SDK path
         run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-
-      - name: Bundle JavaScript
-        run: |
-          mkdir -p android/app/src/main/assets
-          npx react-native bundle \
-            --platform android \
-            --dev false \
-            --entry-file node_modules/expo/AppEntry.js \
-            --bundle-output android/app/src/main/assets/index.android.bundle \
-            --assets-dest android/app/src/main/res
 
       - name: Build debug APK
         run: |
