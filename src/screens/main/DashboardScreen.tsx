@@ -142,10 +142,21 @@ export default function DashboardScreen() {
 
       {/* Earnings card */}
       <View style={styles.earningsCard}>
-        <Text style={styles.earningsLabel}>SALDO TOTAL DA SEMANA</Text>
-        <Text style={styles.earningsValue}>{formatCurrency(earnings.week)}</Text>
+        <Text style={styles.earningsLabel}>SEUS GANHOS ESTA SEMANA</Text>
+        <Text style={styles.earningsValue}>{formatCurrency(earnings.week * 0.85)}</Text>
+        <View style={styles.commissionRow}>
+          <View style={styles.commissionItem}>
+            <Text style={styles.commissionLabel}>Bruto</Text>
+            <Text style={styles.commissionValue}>{formatCurrency(earnings.week)}</Text>
+          </View>
+          <View style={styles.commissionDivider} />
+          <View style={styles.commissionItem}>
+            <Text style={styles.commissionLabel}>Taxa plataforma (15%)</Text>
+            <Text style={styles.commissionValueFee}>- {formatCurrency(earnings.week * 0.15)}</Text>
+          </View>
+        </View>
         <View style={styles.earningsGrowth}>
-          <Text style={styles.growthText}>Total acumulado: {formatCurrency(earnings.total)}</Text>
+          <Text style={styles.growthText}>Total acumulado líquido: {formatCurrency(earnings.total * 0.85)}</Text>
         </View>
       </View>
 
@@ -284,8 +295,22 @@ const styles = StyleSheet.create({
   },
   earningsLabel: { fontSize: 11, color: '#888', fontWeight: '700', letterSpacing: 1, marginBottom: 8 },
   earningsValue: { fontSize: 32, fontWeight: '800', color: '#F5C518', marginBottom: 8 },
-  earningsGrowth: {},
+  earningsGrowth: { marginTop: 8 },
   growthText: { fontSize: 12, color: '#27AE60' },
+  commissionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 8,
+    gap: 8,
+  },
+  commissionItem: { flex: 1 },
+  commissionLabel: { fontSize: 10, color: '#888', marginBottom: 3 },
+  commissionValue: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  commissionValueFee: { fontSize: 13, fontWeight: '700', color: '#FF6B6B' },
+  commissionDivider: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.1)' },
   card: {
     backgroundColor: '#1C2D3E',
     borderRadius: 16,

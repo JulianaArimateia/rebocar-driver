@@ -6,7 +6,6 @@ import {
   onSnapshot,
   query,
   where,
-  orderBy,
   serverTimestamp,
   getDocs,
   getDoc,
@@ -34,22 +33,29 @@ export const subscribeToNearbyRequests = (
   callback: (requests: ServiceRequest[]) => void,
   driverServiceTypes?: TowServiceType[]
 ) => {
+  // Single-field where clause only — avoids requiring a Firestore composite index.
+  // Sorting and distance filtering are done client-side after fetching.
   const q = query(
     collection(db, 'requests'),
-    where('status', '==', 'waiting'),
-    orderBy('createdAt', 'desc')
+    where('status', '==', 'waiting')
   );
 
   return onSnapshot(q, (snap) => {
     const requests = snap.docs
       .map((d) => ({ id: d.id, ...d.data() } as ServiceRequest))
       .filter((req) => {
+        if (!req.clientLocation) return false;
         const dist = haversineDistance(driverLocation, req.clientLocation);
         if (dist > 200) return false;
         if (driverServiceTypes && driverServiceTypes.length > 0) {
           return driverServiceTypes.includes(req.serviceType);
         }
         return true;
+      })
+      .sort((a, b) => {
+        const aMs = a.createdAt?.toMillis?.() ?? a.createdAt?.seconds * 1000 ?? 0;
+        const bMs = b.createdAt?.toMillis?.() ?? b.createdAt?.seconds * 1000 ?? 0;
+        return bMs - aMs;
       });
     callback(requests);
   });
@@ -112,13 +118,15 @@ const getDriverTotalServices = async (driverId: string): Promise<number> => {
 };
 
 export const getDriverHistory = async (driverId: string): Promise<ServiceRequest[]> => {
-  const q = query(
-    collection(db, 'requests'),
-    where('driverId', '==', driverId),
-    orderBy('createdAt', 'desc')
-  );
+  const q = query(collection(db, 'requests'), where('driverId', '==', driverId));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as ServiceRequest));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() } as ServiceRequest))
+    .sort((a, b) => {
+      const aMs = a.createdAt?.toMillis?.() ?? a.createdAt?.seconds * 1000 ?? 0;
+      const bMs = b.createdAt?.toMillis?.() ?? b.createdAt?.seconds * 1000 ?? 0;
+      return bMs - aMs;
+    });
 };
 
 export const subscribeToActiveRequest = (

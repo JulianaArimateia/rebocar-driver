@@ -16,9 +16,8 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../config/firebase';
-import { RequestsStackParamList, ServiceRequest, TOW_SERVICE_LABELS, TOW_SERVICE_PRICES } from '../../types';
-import { completeRequest, createPayment } from '../../services/driverService';
-import { getDriverProfile } from '../../services/authService';
+import { RequestsStackParamList, ServiceRequest, TOW_SERVICE_LABELS } from '../../types';
+import { completeRequest } from '../../services/driverService';
 
 type Nav = NativeStackNavigationProp<RequestsStackParamList, 'CompleteService'>;
 type RouteProps = RouteProp<RequestsStackParamList, 'CompleteService'>;
@@ -53,28 +52,11 @@ export default function CompleteServiceScreen() {
     setLoading(true);
     try {
       await completeRequest(requestId, uid, photos[0], notes);
-
-      // Create payment record so the client can pay via PIX
-      const profile = await getDriverProfile(uid);
-      if (profile?.pixKey) {
-        const amount = request.estimatedPrice ?? TOW_SERVICE_PRICES[request.serviceType] ?? 145;
-        await createPayment(
-          requestId,
-          request.clientId,
-          uid,
-          amount,
-          request.serviceType,
-          profile.pixKey,
-          profile.pixKeyType || 'phone'
-        );
-      }
-
-      Alert.alert('Atendimento finalizado!', 'O cliente será notificado para realizar o pagamento via PIX.', [
-        {
-          text: 'OK',
-          onPress: () => navigation.navigate('RequestsList'),
-        },
-      ]);
+      Alert.alert(
+        'Atendimento finalizado!',
+        'O cliente receberá a cobrança e realizará o pagamento pela plataforma. Você receberá o repasse em até 1 dia útil.',
+        [{ text: 'OK', onPress: () => navigation.navigate('RequestsList') }]
+      );
     } catch (e: any) {
       Alert.alert('Erro', e.message || 'Não foi possível finalizar o atendimento.');
     } finally {

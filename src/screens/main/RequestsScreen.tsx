@@ -173,10 +173,17 @@ export default function RequestsScreen() {
             <View style={styles.newBadge}>
               <Text style={styles.newBadgeText}>NOVA SOLICITAÇÃO</Text>
             </View>
-            <Text style={styles.requestPrice}>R$ {currentRequest.estimatedPrice || 145},00</Text>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={styles.requestPrice}>
+                R$ {((currentRequest.estimatedPrice || 145) * 0.85).toFixed(2)}
+              </Text>
+              <Text style={styles.requestPriceGross}>
+                Bruto: R$ {(currentRequest.estimatedPrice || 145).toFixed(2)}
+              </Text>
+            </View>
           </View>
           <Text style={styles.requestType}>{TOW_SERVICE_LABELS[currentRequest.serviceType] ?? 'Guincho'}</Text>
-          <Text style={styles.requestPriceLabel}>Estimativa</Text>
+          <Text style={styles.requestPriceLabel}>Seu ganho líquido (85%)</Text>
 
           <View style={styles.requestDetails}>
             <View style={styles.detailItem}>
@@ -298,7 +305,8 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   newBadgeText: { fontSize: 9, fontWeight: '800', color: '#1A1A2E' },
-  requestPrice: { fontSize: 22, fontWeight: '800', color: '#F5C518' },
+  requestPrice: { fontSize: 20, fontWeight: '800', color: '#F5C518' },
+  requestPriceGross: { fontSize: 10, color: '#888', marginTop: 2 },
   requestType: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 2 },
   requestPriceLabel: { fontSize: 12, color: '#888', marginBottom: 16 },
   requestDetails: { flexDirection: 'row', gap: 20, marginBottom: 20 },
