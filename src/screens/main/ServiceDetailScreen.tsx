@@ -9,12 +9,13 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { auth } from '../../config/firebase';
-import { RequestsStackParamList, ServiceRequest } from '../../types';
+import { RequestsStackParamList, ServiceRequest, TOW_SERVICE_LABELS } from '../../types';
 import { updateRequestStatus } from '../../services/driverService';
 
 type Nav = NativeStackNavigationProp<RequestsStackParamList, 'ServiceDetail'>;
@@ -90,7 +91,7 @@ export default function ServiceDetailScreen() {
         {/* Client info */}
         <View style={styles.clientCard}>
           <View style={styles.clientAvatar}>
-            <Text style={styles.clientAvatarEmoji}>👤</Text>
+            <Ionicons name="person" size={26} color="#1A1A2E" />
           </View>
           <View style={styles.clientInfo}>
             <Text style={styles.clientLabel}>CLIENTE</Text>
@@ -98,11 +99,11 @@ export default function ServiceDetailScreen() {
             <Text style={styles.clientRating}>★ 4.9</Text>
           </View>
           <View style={styles.clientActions}>
-            <TouchableOpacity style={styles.actionBtn}>
-              <Text>💬</Text>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => Alert.alert('Chat', 'Funcionalidade em breve.')}>
+              <Ionicons name="chatbubble-ellipses-outline" size={18} color="#aaa" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionBtn}>
-              <Text>📞</Text>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => Alert.alert('Ligar', 'Funcionalidade em breve.')}>
+              <Ionicons name="call-outline" size={18} color="#aaa" />
             </TouchableOpacity>
           </View>
         </View>
@@ -110,7 +111,7 @@ export default function ServiceDetailScreen() {
         {/* ETA */}
         <View style={styles.etaCard}>
           <View style={styles.etaCircle}>
-            <Text style={styles.etaIcon}>🏁</Text>
+            <Ionicons name="flag-outline" size={24} color="#F5C518" />
             <Text style={styles.etaLabel}>ETA</Text>
             <Text style={styles.etaValue}>12 min</Text>
           </View>
@@ -118,7 +119,12 @@ export default function ServiceDetailScreen() {
 
         {/* Vehicle info */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>🚗 Informações do Veículo</Text>
+          <View style={styles.serviceTypePill}>
+            <Text style={styles.serviceTypeText}>
+              {request.serviceType ? TOW_SERVICE_LABELS[request.serviceType] : 'Guincho'}
+            </Text>
+          </View>
+          <Text style={styles.cardTitle}>Informações do Veículo</Text>
           <View style={styles.vehicleRow}>
             <View>
               <Text style={styles.vehicleFieldLabel}>MODELO</Text>
@@ -139,7 +145,7 @@ export default function ServiceDetailScreen() {
         {request.photoUrl && (
           <View style={styles.card}>
             <View style={styles.photosHeader}>
-              <Text style={styles.cardTitle}>📸 Fotos do Local</Text>
+              <Text style={styles.cardTitle}>Fotos do Local</Text>
               <Text style={styles.photoCount}>1 FOTO</Text>
             </View>
             <Image source={{ uri: request.photoUrl }} style={styles.vehiclePhoto} />
@@ -148,7 +154,7 @@ export default function ServiceDetailScreen() {
 
         {/* Status timeline */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>📊 Status do Chamado</Text>
+          <Text style={styles.cardTitle}>Status do Chamado</Text>
           {statusKeys.map((key, idx) => (
             <View key={key} style={styles.timelineRow}>
               <View style={[styles.timelineDot, idx <= currentIdx && styles.timelineDotActive]}>
@@ -177,7 +183,7 @@ export default function ServiceDetailScreen() {
             {loading ? (
               <ActivityIndicator color="#1A1A2E" />
             ) : (
-              <Text style={styles.primaryBtnText}>🧭 INICIAR NAVEGAÇÃO</Text>
+              <Text style={styles.primaryBtnText}>INICIAR NAVEGAÇÃO</Text>
             )}
           </TouchableOpacity>
         )}
@@ -188,13 +194,13 @@ export default function ServiceDetailScreen() {
             onPress={() => handleUpdateStatus('arrived')}
             disabled={loading}
           >
-            <Text style={styles.primaryBtnText}>✅ CHEGUEI AO LOCAL</Text>
+            <Text style={styles.primaryBtnText}>CHEGUEI AO LOCAL</Text>
           </TouchableOpacity>
         )}
 
         {request.status === 'arrived' && (
           <TouchableOpacity style={styles.primaryBtn} onPress={handleComplete} disabled={loading}>
-            <Text style={styles.primaryBtnText}>🏁 FINALIZAR ATENDIMENTO</Text>
+            <Text style={styles.primaryBtnText}>FINALIZAR ATENDIMENTO</Text>
           </TouchableOpacity>
         )}
       </ScrollView>
@@ -241,7 +247,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  clientAvatarEmoji: { fontSize: 26 },
   clientInfo: { flex: 1 },
   clientLabel: { fontSize: 10, color: '#888', fontWeight: '700', marginBottom: 2 },
   clientName: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 2 },
@@ -263,7 +268,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   etaCircle: { alignItems: 'center', gap: 4 },
-  etaIcon: { fontSize: 24 },
   etaLabel: { fontSize: 11, color: '#888', fontWeight: '700' },
   etaValue: { fontSize: 18, fontWeight: '800', color: '#F5C518' },
   card: {
@@ -285,6 +289,17 @@ const styles = StyleSheet.create({
     borderColor: '#F5C518',
   },
   plateText: { fontSize: 14, fontWeight: '800', color: '#F5C518', letterSpacing: 2 },
+  serviceTypePill: {
+    backgroundColor: 'rgba(245,197,24,0.15)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(245,197,24,0.3)',
+  },
+  serviceTypeText: { fontSize: 12, fontWeight: '700', color: '#F5C518' },
   problemText: { fontSize: 13, color: '#aaa', lineHeight: 18 },
   photosHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   photoCount: { fontSize: 11, color: '#F5C518', fontWeight: '700' },

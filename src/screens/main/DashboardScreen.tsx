@@ -8,7 +8,9 @@ import {
   Switch,
   RefreshControl,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { auth } from '../../config/firebase';
 import { getDriverProfile } from '../../services/authService';
@@ -113,7 +115,7 @@ export default function DashboardScreen() {
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarEmoji}>👷</Text>
+            <Ionicons name="person" size={24} color="#1A1A2E" />
           </View>
           {isOnline && <View style={styles.onlineDot} />}
         </View>
@@ -143,7 +145,7 @@ export default function DashboardScreen() {
         <Text style={styles.earningsLabel}>SALDO TOTAL DA SEMANA</Text>
         <Text style={styles.earningsValue}>{formatCurrency(earnings.week)}</Text>
         <View style={styles.earningsGrowth}>
-          <Text style={styles.growthText}>📈 Total acumulado: {formatCurrency(earnings.total)}</Text>
+          <Text style={styles.growthText}>Total acumulado: {formatCurrency(earnings.total)}</Text>
         </View>
       </View>
 
@@ -171,12 +173,12 @@ export default function DashboardScreen() {
       {/* Stats */}
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
-          <Text style={styles.statIcon}>✅</Text>
+          <Ionicons name="checkmark-circle-outline" size={24} color="#27AE60" />
           <Text style={styles.statValue}>{earnings.services}</Text>
           <Text style={styles.statLabel}>SERVIÇOS</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statIcon}>⏱</Text>
+          <Ionicons name="time-outline" size={24} color="#F5C518" />
           <Text style={styles.statValue}>—</Text>
           <Text style={styles.statLabel}>ONLINE</Text>
         </View>
@@ -185,7 +187,7 @@ export default function DashboardScreen() {
       {/* Recent history */}
       <View style={styles.historyHeader}>
         <Text style={styles.historyTitle}>Histórico Recente</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => Alert.alert('Histórico', 'Funcionalidade em breve.')}>
           <Text style={styles.seeAll}>Ver tudo →</Text>
         </TouchableOpacity>
       </View>
@@ -198,7 +200,7 @@ export default function DashboardScreen() {
         recentServices.map((svc) => (
           <View key={svc.id} style={styles.serviceItem}>
             <View style={styles.serviceIconBox}>
-              <Text style={styles.serviceIcon}>🚛</Text>
+              <Ionicons name="car-sport" size={20} color="#F5C518" />
             </View>
             <View style={styles.serviceInfo}>
               <Text style={styles.serviceType}>{svc.vehicleModel}</Text>
@@ -233,7 +235,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarEmoji: { fontSize: 24 },
   onlineDot: {
     position: 'absolute',
     bottom: 0,
@@ -309,7 +310,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  statIcon: { fontSize: 24 },
   statValue: { fontSize: 22, fontWeight: '800', color: '#fff' },
   statLabel: { fontSize: 10, color: '#888', fontWeight: '700', letterSpacing: 1 },
   historyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
@@ -336,7 +336,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  serviceIcon: { fontSize: 20 },
   serviceInfo: { flex: 1 },
   serviceType: { fontSize: 14, fontWeight: '700', color: '#fff', marginBottom: 3 },
   serviceDate: { fontSize: 11, color: '#888' },

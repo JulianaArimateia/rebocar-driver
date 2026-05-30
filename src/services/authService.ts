@@ -2,10 +2,25 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from '../config/firebase';
+import { TowServiceType } from '../types';
+
+export const forgotPassword = async (email: string): Promise<void> => {
+  await sendPasswordResetEmail(auth, email.trim());
+};
+
+export const requestDataDeletion = async (uid: string, reason?: string): Promise<void> => {
+  await addDoc(collection(db, 'deletionRequests'), {
+    userId: uid,
+    reason: reason || 'Solicitação do motorista',
+    status: 'pending',
+    createdAt: serverTimestamp(),
+  });
+};
 
 export interface DriverProfile {
   id: string;
@@ -17,10 +32,14 @@ export interface DriverProfile {
   cnh: string;
   vehicleModel: string;
   vehiclePlate: string;
+  serviceTypes: TowServiceType[];
+  pixKey: string;
+  pixKeyType: 'cpf' | 'email' | 'phone' | 'random' | 'cnpj';
   type: 'driver';
   status: 'available' | 'busy' | 'offline';
   rating: number;
   totalServices: number;
+  termsAcceptedAt: any;
   createdAt: any;
 }
 
@@ -41,6 +60,9 @@ export const registerDriver = async (data: {
   cnh: string;
   vehicleModel: string;
   vehiclePlate: string;
+  serviceTypes: TowServiceType[];
+  pixKey: string;
+  pixKeyType: 'cpf' | 'email' | 'phone' | 'random' | 'cnpj';
   password: string;
   cnhFrontUri?: string;
   cnhBackUri?: string;
@@ -73,10 +95,14 @@ export const registerDriver = async (data: {
     cnh: data.cnh,
     vehicleModel: data.vehicleModel,
     vehiclePlate: data.vehiclePlate,
+    serviceTypes: data.serviceTypes,
+    pixKey: data.pixKey,
+    pixKeyType: data.pixKeyType,
     type: 'driver',
     status: 'offline',
     rating: 5.0,
     totalServices: 0,
+    termsAcceptedAt: serverTimestamp(),
     createdAt: serverTimestamp(),
     ...(cnhFrontUrl && { cnhFrontUrl }),
     ...(cnhBackUrl && { cnhBackUrl }),

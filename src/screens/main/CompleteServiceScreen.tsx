@@ -10,13 +10,15 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../config/firebase';
-import { RequestsStackParamList, ServiceRequest } from '../../types';
-import { completeRequest } from '../../services/driverService';
+import { RequestsStackParamList, ServiceRequest, TOW_SERVICE_LABELS, TOW_SERVICE_PRICES } from '../../types';
+import { completeRequest, createPayment } from '../../services/driverService';
+import { getDriverProfile } from '../../services/authService';
 
 type Nav = NativeStackNavigationProp<RequestsStackParamList, 'CompleteService'>;
 type RouteProps = RouteProp<RequestsStackParamList, 'CompleteService'>;
@@ -47,11 +49,27 @@ export default function CompleteServiceScreen() {
 
   const handleComplete = async () => {
     const uid = auth.currentUser?.uid;
-    if (!uid) return;
+    if (!uid || !request) return;
     setLoading(true);
     try {
       await completeRequest(requestId, uid, photos[0], notes);
-      Alert.alert('Atendimento finalizado!', 'O serviço foi concluído com sucesso.', [
+
+      // Create payment record so the client can pay via PIX
+      const profile = await getDriverProfile(uid);
+      if (profile?.pixKey) {
+        const amount = request.estimatedPrice ?? TOW_SERVICE_PRICES[request.serviceType] ?? 145;
+        await createPayment(
+          requestId,
+          request.clientId,
+          uid,
+          amount,
+          request.serviceType,
+          profile.pixKey,
+          profile.pixKeyType || 'phone'
+        );
+      }
+
+      Alert.alert('Atendimento finalizado!', 'O cliente será notificado para realizar o pagamento via PIX.', [
         {
           text: 'OK',
           onPress: () => navigation.navigate('RequestsList'),
@@ -89,12 +107,12 @@ export default function CompleteServiceScreen() {
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <View style={styles.clientAvatar}>
-              <Text>👤</Text>
+              <Ionicons name="person" size={20} color="#1A1A2E" />
             </View>
             <View>
               <Text style={styles.summaryClientName}>{request.clientName}</Text>
               <View style={styles.addressRow}>
-                <Text style={styles.addressIcon}>📍</Text>
+                <Ionicons name="location-outline" size={12} color="#888" />
                 <Text style={styles.addressText} numberOfLines={1}>
                   {request.destinationAddress || 'Destino não informado'}
                 </Text>
@@ -119,8 +137,10 @@ export default function CompleteServiceScreen() {
             <View>
               <Text style={styles.detailFieldLabel}>MODALIDADE</Text>
               <View style={styles.modalityBox}>
-                <Text style={styles.modalityIcon}>🚛</Text>
-                <Text style={styles.modalityText}>Guincho Plataforma</Text>
+                <Ionicons name="car-sport" size={16} color="#F5C518" />
+                <Text style={styles.modalityText}>
+                  {request.serviceType ? TOW_SERVICE_LABELS[request.serviceType] : 'Guincho'}
+                </Text>
               </View>
             </View>
           </View>
@@ -144,7 +164,7 @@ export default function CompleteServiceScreen() {
               </View>
             ))}
             <TouchableOpacity style={styles.addPhotoBtn} onPress={addPhoto}>
-              <Text style={styles.cameraIcon}>📷</Text>
+              <Ionicons name="camera-outline" size={24} color="#888" />
               <Text style={styles.addPhotoLabel}>ADICIONAR</Text>
             </TouchableOpacity>
           </View>
@@ -165,7 +185,7 @@ export default function CompleteServiceScreen() {
 
         {/* Security notice */}
         <View style={styles.securityCard}>
-          <Text style={styles.securityIcon}>🛡</Text>
+          <Ionicons name="shield-checkmark-outline" size={20} color="#F5C518" style={{ marginTop: 2 }} />
           <Text style={styles.securityText}>
             <Text style={styles.securityBold}>SEGURANÇA REBOCAR{'\n'}</Text>
             A finalização requer confirmação de localização via GPS para processamento do pagamento.
@@ -180,7 +200,7 @@ export default function CompleteServiceScreen() {
           {loading ? (
             <ActivityIndicator color="#1A1A2E" />
           ) : (
-            <Text style={styles.completeBtnText}>FINALIZAR ATENDIMENTO ✅</Text>
+            <Text style={styles.completeBtnText}>FINALIZAR ATENDIMENTO</Text>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -231,7 +251,6 @@ const styles = StyleSheet.create({
   },
   summaryClientName: { fontSize: 15, fontWeight: '700', color: '#fff', marginBottom: 3 },
   addressRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  addressIcon: { fontSize: 12 },
   addressText: { fontSize: 12, color: '#888', maxWidth: 140 },
   valueBox: { marginLeft: 'auto', alignItems: 'flex-end' },
   valueLabel: { fontSize: 9, color: '#888', fontWeight: '700' },
@@ -242,7 +261,6 @@ const styles = StyleSheet.create({
   detailFieldLabel: { fontSize: 9, color: '#888', fontWeight: '700', marginBottom: 4 },
   detailFieldValue: { fontSize: 13, color: '#fff', fontWeight: '600' },
   modalityBox: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  modalityIcon: { fontSize: 16 },
   modalityText: { fontSize: 13, color: '#fff', fontWeight: '600' },
   sectionTitle: { fontSize: 14, fontWeight: '700', color: '#888', marginBottom: 12, letterSpacing: 1 },
   photosCard: {
@@ -278,7 +296,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 4,
   },
-  cameraIcon: { fontSize: 24 },
   addPhotoLabel: { fontSize: 8, color: '#888', fontWeight: '700' },
   notesCard: {
     backgroundColor: '#1C2D3E',
@@ -304,7 +321,6 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: '#F5C518',
   },
-  securityIcon: { fontSize: 20, marginTop: 2 },
   securityText: { flex: 1, fontSize: 12, color: '#888', lineHeight: 18 },
   securityBold: { color: '#F5C518', fontWeight: '700' },
   completeBtn: {

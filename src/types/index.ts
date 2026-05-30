@@ -1,5 +1,19 @@
 export type DriverStatus = 'available' | 'busy' | 'offline';
 
+export type TowServiceType = 'car' | 'truck' | 'munck';
+
+export const TOW_SERVICE_LABELS: Record<TowServiceType, string> = {
+  car: 'Guincho para Carro',
+  truck: 'Guincho para Caminhão',
+  munck: 'Caminhão Munck',
+};
+
+export const TOW_SERVICE_PRICES: Record<TowServiceType, number> = {
+  car: 145,
+  truck: 280,
+  munck: 420,
+};
+
 export type RequestStatus =
   | 'waiting'
   | 'accepted'
@@ -19,6 +33,7 @@ export interface ServiceRequest {
   clientName: string;
   driverId?: string;
   status: RequestStatus;
+  serviceType: TowServiceType;
   vehicleModel: string;
   vehiclePlate: string;
   problemDescription: string;
@@ -35,6 +50,7 @@ export type DriverStackParamList = {
   Login: undefined;
   Register: undefined;
   Main: undefined;
+  Legal: { type: 'terms' | 'privacy' };
 };
 
 export type MainTabParamList = {

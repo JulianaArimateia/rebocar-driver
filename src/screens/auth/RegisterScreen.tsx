@@ -10,16 +10,30 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { DriverStackParamList } from '../../types';
+import { useNavigation } from '@react-navigation/native';
+import { DriverStackParamList, TowServiceType } from '../../types';
 import { registerDriver } from '../../services/authService';
 
-type Props = {
-  navigation: NativeStackNavigationProp<DriverStackParamList, 'Register'>;
-};
+const PIX_KEY_TYPES = [
+  { value: 'phone', label: 'Telefone' },
+  { value: 'email', label: 'E-mail' },
+  { value: 'cpf', label: 'CPF' },
+  { value: 'random', label: 'Chave Aleatória' },
+] as const;
 
-export default function RegisterScreen({ navigation }: Props) {
+const SERVICE_OPTIONS: { type: TowServiceType; label: string; sub: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { type: 'car', label: 'Guincho para Carro', sub: 'Veículos de passeio', icon: 'car-outline' },
+  { type: 'truck', label: 'Guincho para Caminhão', sub: 'Veículos pesados', icon: 'bus-outline' },
+  { type: 'munck', label: 'Caminhão Munck', sub: 'Içamento com guindaste', icon: 'construct-outline' },
+];
+
+type Nav = NativeStackNavigationProp<DriverStackParamList, 'Register'>;
+
+export default function RegisterScreen() {
+  const navigation = useNavigation<Nav>();
   const [step, setStep] = useState(1);
 
   // Step 1: Personal data + CNH photos
@@ -31,13 +45,22 @@ export default function RegisterScreen({ navigation }: Props) {
   const [cnhBackUri, setCnhBackUri] = useState<string | undefined>();
   const [accepted, setAccepted] = useState(false);
 
-  // Step 2: Account + vehicle
+  // Step 2: Account + vehicle + service types
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [cnh, setCnh] = useState('');
   const [vehicleModel, setVehicleModel] = useState('');
   const [vehiclePlate, setVehiclePlate] = useState('');
+  const [serviceTypes, setServiceTypes] = useState<TowServiceType[]>([]);
+  const [pixKey, setPixKey] = useState('');
+  const [pixKeyType, setPixKeyType] = useState<'phone' | 'email' | 'cpf' | 'random'>('phone');
   const [showPassword, setShowPassword] = useState(false);
+
+  const toggleServiceType = (type: TowServiceType) => {
+    setServiceTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
+  };
 
   const [loading, setLoading] = useState(false);
 
@@ -69,6 +92,14 @@ export default function RegisterScreen({ navigation }: Props) {
       Alert.alert('Campos obrigatórios', 'Preencha todos os campos do veículo.');
       return;
     }
+    if (serviceTypes.length === 0) {
+      Alert.alert('Tipo de serviço', 'Selecione pelo menos um tipo de guincho que você oferece.');
+      return;
+    }
+    if (!pixKey.trim()) {
+      Alert.alert('Chave PIX', 'Informe sua chave PIX para receber pagamentos.');
+      return;
+    }
     if (password.length < 6) {
       Alert.alert('Senha fraca', 'A senha deve ter pelo menos 6 caracteres.');
       return;
@@ -84,6 +115,9 @@ export default function RegisterScreen({ navigation }: Props) {
         cnh: cnh.trim(),
         vehicleModel: vehicleModel.trim(),
         vehiclePlate: vehiclePlate.trim().toUpperCase(),
+        serviceTypes,
+        pixKey: pixKey.trim(),
+        pixKeyType,
         password,
         cnhFrontUri,
         cnhBackUri,
@@ -168,7 +202,7 @@ export default function RegisterScreen({ navigation }: Props) {
                 <Image source={{ uri: cnhFrontUri }} style={styles.cnhImage} />
               ) : (
                 <>
-                  <Text style={styles.cameraIcon}>📷</Text>
+                  <Ionicons name="camera-outline" size={28} color="#888" />
                   <Text style={styles.cnhPhotoLabel}>FRENTE DA CNH</Text>
                 </>
               )}
@@ -179,7 +213,7 @@ export default function RegisterScreen({ navigation }: Props) {
                 <Image source={{ uri: cnhBackUri }} style={styles.cnhImage} />
               ) : (
                 <>
-                  <Text style={styles.cameraIcon}>📷</Text>
+                  <Ionicons name="camera-outline" size={28} color="#888" />
                   <Text style={styles.cnhPhotoLabel}>VERSO DA CNH</Text>
                 </>
               )}
@@ -187,10 +221,29 @@ export default function RegisterScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.photoRequirements}>
-            <Text style={styles.reqItem}>✅ FOTO NÍTIDA</Text>
-            <Text style={styles.reqItem}>✅ SEM REFLEXOS</Text>
-            <Text style={styles.reqItem}>✅ DOCUMENTO ORIGINAL</Text>
+            <View style={styles.reqItem}>
+              <Ionicons name="checkmark-circle-outline" size={14} color="#27AE60" />
+              <Text style={styles.reqItemText}>FOTO NÍTIDA</Text>
+            </View>
+            <View style={styles.reqItem}>
+              <Ionicons name="checkmark-circle-outline" size={14} color="#27AE60" />
+              <Text style={styles.reqItemText}>SEM REFLEXOS</Text>
+            </View>
+            <View style={styles.reqItem}>
+              <Ionicons name="checkmark-circle-outline" size={14} color="#27AE60" />
+              <Text style={styles.reqItemText}>DOCUMENTO ORIGINAL</Text>
+            </View>
           </View>
+        </View>
+
+        <View style={styles.termsLinksRow}>
+          <TouchableOpacity onPress={() => navigation.navigate('Legal', { type: 'terms' })}>
+            <Text style={styles.termsLinkBtn}>Ler Termos de Uso</Text>
+          </TouchableOpacity>
+          <Text style={styles.termsDot}> · </Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Legal', { type: 'privacy' })}>
+            <Text style={styles.termsLinkBtn}>Política de Privacidade</Text>
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity
@@ -201,8 +254,11 @@ export default function RegisterScreen({ navigation }: Props) {
             {accepted && <Text style={styles.checkmark}>✓</Text>}
           </View>
           <Text style={styles.termsText}>
-            Li e aceito os <Text style={styles.termsLink}>Termos de Uso</Text> e a{' '}
-            <Text style={styles.termsLink}>Política de Privacidade</Text> da ReboCar.
+            Li e aceito os Termos de Uso e a Política de Privacidade da ReboCar.
+            {'\n'}
+            <Text style={styles.lgpdNote}>
+              Meus dados serão tratados conforme a LGPD (Lei 13.709/2018).
+            </Text>
           </Text>
         </TouchableOpacity>
 
@@ -230,7 +286,7 @@ export default function RegisterScreen({ navigation }: Props) {
 
       <Text style={styles.fieldLabel}>NOME COMPLETO</Text>
       <View style={styles.inputRow}>
-        <Text>👤 </Text>
+        <Ionicons name="person-outline" size={18} color="#888" style={{ marginRight: 8 }} />
         <TextInput
           style={styles.inputInRow}
           placeholder={name}
@@ -242,7 +298,7 @@ export default function RegisterScreen({ navigation }: Props) {
 
       <Text style={styles.fieldLabel}>E-MAIL</Text>
       <View style={styles.inputRow}>
-        <Text>✉️ </Text>
+        <Ionicons name="mail-outline" size={18} color="#888" style={{ marginRight: 8 }} />
         <TextInput
           style={styles.inputInRow}
           value={email}
@@ -253,7 +309,7 @@ export default function RegisterScreen({ navigation }: Props) {
 
       <Text style={styles.fieldLabel}>TELEFONE CELULAR</Text>
       <View style={styles.inputRow}>
-        <Text>📱 </Text>
+        <Ionicons name="phone-portrait-outline" size={18} color="#888" style={{ marginRight: 8 }} />
         <TextInput
           style={styles.inputInRow}
           placeholder="(11) 99999-9999"
@@ -293,7 +349,65 @@ export default function RegisterScreen({ navigation }: Props) {
         autoCapitalize="characters"
       />
 
-      <Text style={styles.fieldLabel}>SENHA</Text>
+      <Text style={styles.fieldLabel}>TIPOS DE SERVIÇO OFERECIDOS</Text>
+      <Text style={styles.serviceTypeHint}>Selecione todos que se aplicam ao seu veículo.</Text>
+      {SERVICE_OPTIONS.map((opt) => {
+        const selected = serviceTypes.includes(opt.type);
+        return (
+          <TouchableOpacity
+            key={opt.type}
+            style={[styles.serviceTypeCard, selected && styles.serviceTypeCardSelected]}
+            onPress={() => toggleServiceType(opt.type)}
+          >
+            <View style={[styles.serviceTypeIconBox, selected && styles.serviceTypeIconBoxSelected]}>
+              <Ionicons name={opt.icon} size={22} color={selected ? '#1A1A2E' : '#888'} />
+            </View>
+            <View style={styles.serviceTypeInfo}>
+              <Text style={[styles.serviceTypeLabel, selected && styles.serviceTypeLabelSelected]}>
+                {opt.label}
+              </Text>
+              <Text style={styles.serviceTypeSub}>{opt.sub}</Text>
+            </View>
+            <View style={[styles.serviceTypeCheck, selected && styles.serviceTypeCheckSelected]}>
+              {selected && <Ionicons name="checkmark" size={14} color="#1A1A2E" />}
+            </View>
+          </TouchableOpacity>
+        );
+      })}
+
+      <Text style={[styles.fieldLabel, { marginTop: 16 }]}>CHAVE PIX PARA RECEBIMENTO</Text>
+      <Text style={styles.serviceTypeHint}>Sua chave PIX será exibida ao cliente após o serviço.</Text>
+      <View style={styles.pixTypeRow}>
+        {PIX_KEY_TYPES.map((opt) => (
+          <TouchableOpacity
+            key={opt.value}
+            style={[styles.pixTypeBtn, pixKeyType === opt.value && styles.pixTypeBtnSelected]}
+            onPress={() => setPixKeyType(opt.value)}
+          >
+            <Text style={[styles.pixTypeBtnText, pixKeyType === opt.value && styles.pixTypeBtnTextSelected]}>
+              {opt.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <View style={styles.inputRow}>
+        <Ionicons name="key-outline" size={18} color="#888" style={{ marginRight: 8 }} />
+        <TextInput
+          style={styles.inputInRow}
+          placeholder={
+            pixKeyType === 'phone' ? '(11) 99999-9999' :
+            pixKeyType === 'email' ? 'seu@email.com' :
+            pixKeyType === 'cpf' ? '000.000.000-00' : 'Chave aleatória'
+          }
+          placeholderTextColor="#666"
+          value={pixKey}
+          onChangeText={setPixKey}
+          keyboardType={pixKeyType === 'phone' ? 'phone-pad' : pixKeyType === 'email' ? 'email-address' : 'default'}
+          autoCapitalize="none"
+        />
+      </View>
+
+      <Text style={[styles.fieldLabel, { marginTop: 16 }]}>SENHA</Text>
       <View style={styles.passwordRow}>
         <TextInput
           style={styles.passwordInput}
@@ -304,7 +418,7 @@ export default function RegisterScreen({ navigation }: Props) {
           secureTextEntry={!showPassword}
         />
         <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-          <Text>{showPassword ? '🙈' : '👁'}</Text>
+          <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#888" />
         </TouchableOpacity>
       </View>
 
@@ -400,10 +514,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cnhImage: { width: '100%', height: '100%' },
-  cameraIcon: { fontSize: 28 },
   cnhPhotoLabel: { fontSize: 10, color: '#888', fontWeight: '700' },
   photoRequirements: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
-  reqItem: { fontSize: 11, color: '#27AE60', fontWeight: '600' },
+  reqItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  reqItemText: { fontSize: 11, color: '#27AE60', fontWeight: '600' },
   checkRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 20 },
   checkbox: {
     width: 20,
@@ -441,4 +555,56 @@ const styles = StyleSheet.create({
   },
   passwordInput: { flex: 1, paddingVertical: 12, fontSize: 14, color: '#fff' },
   loginLink: { textAlign: 'center', fontSize: 13, color: '#666', marginTop: 4 },
+  serviceTypeHint: { fontSize: 12, color: '#555', marginBottom: 12, lineHeight: 16 },
+  serviceTypeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1C2D3E',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: '#2A3D50',
+    gap: 12,
+  },
+  serviceTypeCardSelected: { borderColor: '#F5C518', backgroundColor: '#1E2D1A' },
+  serviceTypeIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#0D1B2A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  serviceTypeIconBoxSelected: { backgroundColor: '#F5C518' },
+  serviceTypeInfo: { flex: 1 },
+  serviceTypeLabel: { fontSize: 14, fontWeight: '700', color: '#888', marginBottom: 2 },
+  serviceTypeLabelSelected: { color: '#fff' },
+  serviceTypeSub: { fontSize: 11, color: '#555' },
+  serviceTypeCheck: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#2A3D50',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  serviceTypeCheckSelected: { backgroundColor: '#F5C518', borderColor: '#F5C518' },
+  termsLinksRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  termsLinkBtn: { fontSize: 12, color: '#F5C518', fontWeight: '700', textDecorationLine: 'underline' },
+  termsDot: { fontSize: 12, color: '#555' },
+  lgpdNote: { fontSize: 11, color: '#555', fontStyle: 'italic' },
+  pixTypeRow: { flexDirection: 'row', gap: 8, marginBottom: 12, flexWrap: 'wrap' },
+  pixTypeBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#2A3D50',
+    backgroundColor: '#1C2D3E',
+  },
+  pixTypeBtnSelected: { borderColor: '#F5C518', backgroundColor: 'rgba(245,197,24,0.15)' },
+  pixTypeBtnText: { fontSize: 12, color: '#555', fontWeight: '600' },
+  pixTypeBtnTextSelected: { color: '#F5C518' },
 });

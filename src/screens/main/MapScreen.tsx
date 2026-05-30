@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { auth } from '../../config/firebase';
@@ -55,14 +56,14 @@ export default function MapScreen() {
         {location && (
           <Marker coordinate={location} title="Você está aqui">
             <View style={styles.driverMarker}>
-              <Text style={styles.driverMarkerEmoji}>🚛</Text>
+              <Ionicons name="car-sport" size={22} color="#1A1A2E" />
             </View>
           </Marker>
         )}
       </MapView>
 
       <TouchableOpacity style={styles.centerBtn} onPress={centerOnUser}>
-        <Text style={styles.centerBtnText}>📍</Text>
+        <Ionicons name="locate-outline" size={22} color="#F5C518" />
       </TouchableOpacity>
 
       <View style={styles.overlay}>
@@ -90,7 +91,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#fff',
   },
-  driverMarkerEmoji: { fontSize: 22 },
   centerBtn: {
     position: 'absolute',
     bottom: 100,
@@ -107,7 +107,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 6,
   },
-  centerBtnText: { fontSize: 22 },
   overlay: {
     position: 'absolute',
     top: 50,

@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -106,7 +107,7 @@ export default function NavigationScreen() {
       {/* ETA bar */}
       <View style={styles.etaBar}>
         <Text style={styles.etaDirections}>
-          {dist && dist < 0.2 ? '✅ Chegue ao local' : '🗺 Em navegação...'}
+          {dist && dist < 0.2 ? 'Chegue ao local' : 'Em navegação...'}
         </Text>
       </View>
 
@@ -114,7 +115,7 @@ export default function NavigationScreen() {
       {request && (
         <View style={styles.clientBubble}>
           <View style={styles.clientAvatar}>
-            <Text style={styles.clientEmoji}>👤</Text>
+            <Ionicons name="person" size={22} color="#1A1A2E" />
           </View>
           <View style={styles.clientInfo}>
             <Text style={styles.clientName}>{request.clientName}</Text>
@@ -122,8 +123,8 @@ export default function NavigationScreen() {
               {request.vehicleModel} • {request.vehiclePlate}
             </Text>
           </View>
-          <TouchableOpacity style={styles.callBtn}>
-            <Text>📞</Text>
+          <TouchableOpacity style={styles.callBtn} onPress={() => Alert.alert('Ligar', 'Funcionalidade em breve.')}>
+            <Ionicons name="call-outline" size={18} color="#666" />
           </TouchableOpacity>
         </View>
       )}
@@ -132,13 +133,13 @@ export default function NavigationScreen() {
       <View style={styles.bottomPanel}>
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
-            <Text style={styles.statIcon}>⏱</Text>
+            <Ionicons name="time-outline" size={20} color="#F5C518" />
             <Text style={styles.statLabel}>TEMPO</Text>
             <Text style={styles.statValue}>{eta ? `${eta} min` : '—'}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBox}>
-            <Text style={styles.statIcon}>📍</Text>
+            <Ionicons name="location-outline" size={20} color="#F5C518" />
             <Text style={styles.statLabel}>DISTÂNCIA</Text>
             <Text style={styles.statValue}>{dist ? `${dist.toFixed(1)} km` : '—'}</Text>
           </View>
@@ -162,7 +163,7 @@ export default function NavigationScreen() {
           {loading ? (
             <ActivityIndicator color="#1A1A2E" />
           ) : (
-            <Text style={styles.arrivedBtnText}>✅  CHEGUEI AO LOCAL</Text>
+            <Text style={styles.arrivedBtnText}>CHEGUEI AO LOCAL</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -215,7 +216,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  clientEmoji: { fontSize: 22 },
   clientInfo: { flex: 1 },
   clientName: { fontSize: 15, fontWeight: '700', color: '#1A1A2E' },
   vehicleInfo: { fontSize: 12, color: '#888', marginTop: 2 },
@@ -245,7 +245,6 @@ const styles = StyleSheet.create({
   },
   statBox: { flex: 1, alignItems: 'center', gap: 4 },
   statDivider: { width: 1, height: 40, backgroundColor: '#2A3D50' },
-  statIcon: { fontSize: 20 },
   statLabel: { fontSize: 10, color: '#888', fontWeight: '700', letterSpacing: 1 },
   statValue: { fontSize: 18, fontWeight: '800', color: '#fff' },
   destinationRow: {

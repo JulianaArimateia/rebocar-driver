@@ -9,18 +9,20 @@ import {
   Easing,
   ActivityIndicator,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { auth } from '../../config/firebase';
-import { RequestsStackParamList, ServiceRequest, Location as LocType } from '../../types';
+import { RequestsStackParamList, ServiceRequest, Location as LocType, TowServiceType, TOW_SERVICE_LABELS } from '../../types';
 import {
   subscribeToNearbyRequests,
   subscribeToActiveRequest,
   acceptRequest,
   haversineDistance,
 } from '../../services/driverService';
+import { getDriverProfile } from '../../services/authService';
 
 type Nav = NativeStackNavigationProp<RequestsStackParamList, 'RequestsList'>;
 
@@ -28,6 +30,7 @@ export default function RequestsScreen() {
   const navigation = useNavigation<Nav>();
   const mapRef = useRef<MapView>(null);
   const [driverLocation, setDriverLocation] = useState<LocType | null>(null);
+  const [driverServiceTypes, setDriverServiceTypes] = useState<TowServiceType[]>([]);
   const [pendingRequests, setPendingRequests] = useState<ServiceRequest[]>([]);
   const [activeRequest, setActiveRequest] = useState<ServiceRequest | null>(null);
   const [currentRequest, setCurrentRequest] = useState<ServiceRequest | null>(null);
@@ -37,6 +40,11 @@ export default function RequestsScreen() {
 
   useEffect(() => {
     (async () => {
+      const uid = auth.currentUser?.uid;
+      if (uid) {
+        const profile = await getDriverProfile(uid);
+        if (profile?.serviceTypes) setDriverServiceTypes(profile.serviceTypes);
+      }
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
@@ -61,9 +69,9 @@ export default function RequestsScreen() {
       if (reqs.length > 0 && !currentRequest) {
         showRequest(reqs[0]);
       }
-    });
+    }, driverServiceTypes);
     return unsub;
-  }, [driverLocation]);
+  }, [driverLocation, driverServiceTypes]);
 
   const showRequest = (req: ServiceRequest) => {
     setCurrentRequest(req);
@@ -167,19 +175,19 @@ export default function RequestsScreen() {
             </View>
             <Text style={styles.requestPrice}>R$ {currentRequest.estimatedPrice || 145},00</Text>
           </View>
-          <Text style={styles.requestType}>Guincho Plataforma</Text>
+          <Text style={styles.requestType}>{TOW_SERVICE_LABELS[currentRequest.serviceType] ?? 'Guincho'}</Text>
           <Text style={styles.requestPriceLabel}>Estimativa</Text>
 
           <View style={styles.requestDetails}>
             <View style={styles.detailItem}>
-              <Text style={styles.detailIcon}>📍</Text>
+              <Ionicons name="location-outline" size={16} color="#F5C518" />
               <Text style={styles.detailLabel}>Distância</Text>
               <Text style={styles.detailValue}>
                 {dist ? `${dist.toFixed(1)} km (${eta} min)` : 'Calculando...'}
               </Text>
             </View>
             <View style={styles.detailItem}>
-              <Text style={styles.detailIcon}>👤</Text>
+              <Ionicons name="person-outline" size={16} color="#F5C518" />
               <Text style={styles.detailLabel}>Cliente</Text>
               <Text style={styles.detailValue}>{currentRequest.clientName}</Text>
             </View>
@@ -295,7 +303,7 @@ const styles = StyleSheet.create({
   requestPriceLabel: { fontSize: 12, color: '#888', marginBottom: 16 },
   requestDetails: { flexDirection: 'row', gap: 20, marginBottom: 20 },
   detailItem: { flex: 1 },
-  detailIcon: { fontSize: 16, marginBottom: 4 },
+  detailIcon: { marginBottom: 4 },
   detailLabel: { fontSize: 10, color: '#888', fontWeight: '600', marginBottom: 2 },
   detailValue: { fontSize: 13, color: '#fff', fontWeight: '600' },
   actionButtons: { flexDirection: 'row', gap: 10 },

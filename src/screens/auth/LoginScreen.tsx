@@ -10,9 +10,10 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { DriverStackParamList } from '../../types';
-import { loginDriver } from '../../services/authService';
+import { loginDriver, forgotPassword } from '../../services/authService';
 
 type Props = {
   navigation: NativeStackNavigationProp<DriverStackParamList, 'Login'>;
@@ -48,7 +49,7 @@ export default function LoginScreen({ navigation }: Props) {
       <View style={styles.inner}>
         <View style={styles.logoContainer}>
           <View style={styles.logoBox}>
-            <Text style={styles.logoEmoji}>🚛</Text>
+            <Ionicons name="car-sport" size={40} color="#1A1A2E" />
           </View>
           <Text style={styles.appName}>ReboCar Driver</Text>
           <View style={styles.onlineIndicator}>
@@ -83,9 +84,39 @@ export default function LoginScreen({ navigation }: Props) {
             secureTextEntry={!showPassword}
           />
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁'}</Text>
+            <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#888" />
           </TouchableOpacity>
         </View>
+
+        <TouchableOpacity
+          style={styles.forgotBtn}
+          onPress={() => {
+            if (!email.trim()) {
+              Alert.alert('Digite seu e-mail', 'Informe seu e-mail acima antes de recuperar a senha.');
+              return;
+            }
+            Alert.alert(
+              'Recuperar senha',
+              `Enviar link de redefinição para:\n${email.trim()}?`,
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                  text: 'Enviar',
+                  onPress: async () => {
+                    try {
+                      await forgotPassword(email.trim());
+                      Alert.alert('E-mail enviado', 'Verifique sua caixa de entrada e siga as instruções.');
+                    } catch {
+                      Alert.alert('Erro', 'Não foi possível enviar o e-mail. Verifique o endereço.');
+                    }
+                  },
+                },
+              ]
+            );
+          }}
+        >
+          <Text style={styles.forgotText}>Esqueceu a senha?</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity style={styles.loginBtn} onPress={handleLogin} disabled={loading}>
           {loading ? (
@@ -127,7 +158,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 10,
   },
-  logoEmoji: { fontSize: 40 },
   appName: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 8 },
   onlineIndicator: {
     flexDirection: 'row',
@@ -171,7 +201,9 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   passwordInput: { flex: 1, paddingVertical: 14, fontSize: 15, color: '#fff' },
-  eyeIcon: { fontSize: 18, padding: 4 },
+  eyeIcon: { padding: 4 },
+  forgotBtn: { alignSelf: 'flex-end', marginBottom: 20, marginTop: 4 },
+  forgotText: { color: '#F5C518', fontWeight: '600', fontSize: 13 },
   loginBtn: {
     backgroundColor: '#F5C518',
     borderRadius: 12,

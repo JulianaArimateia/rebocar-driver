@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  addDoc,
   updateDoc,
   onSnapshot,
   query,
@@ -12,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
-import { ServiceRequest, Location, DriverStatus } from '../types';
+import { ServiceRequest, Location, DriverStatus, TowServiceType } from '../types';
 
 export const updateDriverStatus = async (
   driverId: string,
@@ -30,7 +31,8 @@ export const updateDriverLocation = async (
 
 export const subscribeToNearbyRequests = (
   driverLocation: Location,
-  callback: (requests: ServiceRequest[]) => void
+  callback: (requests: ServiceRequest[]) => void,
+  driverServiceTypes?: TowServiceType[]
 ) => {
   const q = query(
     collection(db, 'requests'),
@@ -43,7 +45,11 @@ export const subscribeToNearbyRequests = (
       .map((d) => ({ id: d.id, ...d.data() } as ServiceRequest))
       .filter((req) => {
         const dist = haversineDistance(driverLocation, req.clientLocation);
-        return dist <= 200; // 200 km radius
+        if (dist > 200) return false;
+        if (driverServiceTypes && driverServiceTypes.length > 0) {
+          return driverServiceTypes.includes(req.serviceType);
+        }
+        return true;
       });
     callback(requests);
   });
@@ -159,6 +165,51 @@ export const getDriverEarnings = async (
   });
 
   return { week: weekEarnings, total: totalEarnings, services };
+};
+
+export const createPayment = async (
+  requestId: string,
+  clientId: string,
+  driverId: string,
+  amount: number,
+  serviceType: string,
+  pixKey: string,
+  pixKeyType: string
+): Promise<string> => {
+  const docRef = await addDoc(collection(db, 'payments'), {
+    requestId,
+    clientId,
+    driverId,
+    amount,
+    serviceType,
+    pixKey,
+    pixKeyType,
+    status: 'pending_client',
+    createdAt: serverTimestamp(),
+  });
+  await updateDoc(doc(db, 'requests', requestId), { paymentId: docRef.id });
+  return docRef.id;
+};
+
+export const confirmPaymentByDriver = async (paymentId: string): Promise<void> => {
+  await updateDoc(doc(db, 'payments', paymentId), {
+    status: 'driver_confirmed',
+    driverConfirmedAt: serverTimestamp(),
+  });
+};
+
+export const subscribeToDriverPayments = (
+  driverId: string,
+  callback: (payments: any[]) => void
+) => {
+  const q = query(
+    collection(db, 'payments'),
+    where('driverId', '==', driverId),
+    where('status', '==', 'client_confirmed')
+  );
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  });
 };
 
 export const haversineDistance = (a: Location, b: Location): number => {

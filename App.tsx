@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View, Text, TouchableOpacity } from 'react-native';
 import { onAuthStateChanged } from 'firebase/auth';
+import { Ionicons } from '@expo/vector-icons';
 
 import { auth } from './src/config/firebase';
 import { DriverStackParamList, MainTabParamList, RequestsStackParamList } from './src/types';
@@ -18,6 +19,7 @@ import ServiceDetailScreen from './src/screens/main/ServiceDetailScreen';
 import NavigationScreen from './src/screens/main/NavigationScreen';
 import CompleteServiceScreen from './src/screens/main/CompleteServiceScreen';
 import MapScreen from './src/screens/main/MapScreen';
+import LegalScreen from './src/screens/legal/LegalScreen';
 
 const RootStack = createNativeStackNavigator<DriverStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -34,11 +36,11 @@ function RequestsNavigator() {
   );
 }
 
-function TabIcon({ emoji, label, focused }: { emoji: string; label: string; focused: boolean }) {
+function TabIcon({ icon, label, focused }: { icon: keyof typeof Ionicons.glyphMap; label: string; focused: boolean }) {
   return (
     <View style={{ alignItems: 'center', gap: 2 }}>
-      <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.4 }}>{emoji}</Text>
-      <Text style={{ fontSize: 9, color: focused ? '#F5C518' : '#666', fontWeight: focused ? '700' : '400' }}>
+      <Ionicons name={icon} size={22} color={focused ? '#F5C518' : '#555'} />
+      <Text style={{ fontSize: 9, color: focused ? '#F5C518' : '#555', fontWeight: focused ? '700' : '400' }}>
         {label}
       </Text>
     </View>
@@ -63,28 +65,28 @@ function MainTabs() {
         name="Requests"
         component={RequestsNavigator}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🔔" label="REQUESTS" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="notifications-outline" label="REQUESTS" focused={focused} />,
         }}
       />
       <Tab.Screen
         name="Map"
         component={MapScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🗺" label="MAP" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="map-outline" label="MAP" focused={focused} />,
         }}
       />
       <Tab.Screen
         name="Earnings"
         component={DashboardScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon emoji="💰" label="EARNINGS" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="wallet-outline" label="EARNINGS" focused={focused} />,
         }}
       />
       <Tab.Screen
         name="Profile"
         component={DashboardScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon emoji="👤" label="PROFILE" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="person-outline" label="PROFILE" focused={focused} />,
         }}
       />
     </Tab.Navigator>
@@ -119,6 +121,7 @@ export default function App() {
         <RootStack.Screen name="Login" component={LoginScreen} />
         <RootStack.Screen name="Register" component={RegisterScreen} />
         <RootStack.Screen name="Main" component={MainTabs} />
+        <RootStack.Screen name="Legal" component={LegalScreen} />
       </RootStack.Navigator>
     </NavigationContainer>
   );
