@@ -142,6 +142,13 @@ export default function RegisterScreen() {
           <Text style={styles.stepLabel}>DADOS PESSOAIS</Text>
         </View>
 
+        <View style={styles.dualAccountNote}>
+          <Ionicons name="information-circle-outline" size={16} color="#F5C518" />
+          <Text style={styles.dualAccountText}>
+            Já é cliente ReboCar? Use o mesmo e-mail e senha da sua conta de cliente — você não precisará criar uma nova conta.
+          </Text>
+        </View>
+
         <Text style={styles.greeting}>Seja bem-vindo, parceiro.</Text>
         <Text style={styles.greetingSubtitle}>
           Para começar, precisamos de algumas informações básicas para validar sua conta profissional.
@@ -607,4 +614,17 @@ const styles = StyleSheet.create({
   pixTypeBtnSelected: { borderColor: '#F5C518', backgroundColor: 'rgba(245,197,24,0.15)' },
   pixTypeBtnText: { fontSize: 12, color: '#555', fontWeight: '600' },
   pixTypeBtnTextSelected: { color: '#F5C518' },
+  dualAccountNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: 'rgba(245,197,24,0.1)',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(245,197,24,0.3)',
+  },
+  dualAccountText: { flex: 1, fontSize: 12, color: '#F5C518', lineHeight: 18 },
 });

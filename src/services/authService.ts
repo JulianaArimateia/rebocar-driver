@@ -51,6 +51,9 @@ export const uploadCNHPhoto = async (uri: string, uid: string, side: string): Pr
   return getDownloadURL(storageRef);
 };
 
+// Uma mesma pessoa pode ser motorista E cliente com o mesmo e-mail.
+// Se o e-mail já existe (ex: cadastrado como cliente), fazemos login com as credenciais
+// e criamos apenas o perfil de motorista (drivers/{uid}) sem mexer no perfil de cliente.
 export const registerDriver = async (data: {
   name: string;
   email: string;
@@ -67,23 +70,38 @@ export const registerDriver = async (data: {
   cnhFrontUri?: string;
   cnhBackUri?: string;
 }): Promise<DriverProfile> => {
-  const credential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-  const uid = credential.user.uid;
+  let uid: string;
+
+  try {
+    const credential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+    uid = credential.user.uid;
+  } catch (e: any) {
+    if (e.code === 'auth/email-already-in-use') {
+      // E-mail já existe — pode ser um cliente querendo se tornar motorista parceiro.
+      try {
+        const credential = await signInWithEmailAndPassword(auth, data.email, data.password);
+        uid = credential.user.uid;
+      } catch {
+        throw new Error(
+          'Este e-mail já está cadastrado. Se você é cliente, use a mesma senha da conta de cliente para criar sua conta de motorista.'
+        );
+      }
+    } else {
+      throw e;
+    }
+  }
+
+  // Verifica se já tem perfil de motorista — não permite duplicata
+  const existingDriverSnap = await getDoc(doc(db, 'drivers', uid));
+  if (existingDriverSnap.exists()) {
+    throw new Error('Este e-mail já está cadastrado como motorista parceiro. Faça login.');
+  }
 
   let cnhFrontUrl: string | undefined;
   let cnhBackUrl: string | undefined;
 
   if (data.cnhFrontUri) cnhFrontUrl = await uploadCNHPhoto(data.cnhFrontUri, uid, 'front');
   if (data.cnhBackUri) cnhBackUrl = await uploadCNHPhoto(data.cnhBackUri, uid, 'back');
-
-  const userProfile = {
-    id: uid,
-    name: data.name,
-    email: data.email,
-    phone: data.phone,
-    type: 'driver',
-    createdAt: serverTimestamp(),
-  };
 
   const driverProfile: DriverProfile = {
     id: uid,
@@ -108,17 +126,42 @@ export const registerDriver = async (data: {
     ...(cnhBackUrl && { cnhBackUrl }),
   };
 
-  await setDoc(doc(db, 'users', uid), userProfile);
+  // Atualiza/cria o documento base em users (merge para não sobrescrever dados de cliente existentes)
+  await setDoc(doc(db, 'users', uid), {
+    id: uid,
+    name: data.name,
+    email: data.email,
+    phone: data.phone,
+    type: 'both', // pode ser cliente e motorista ao mesmo tempo
+    driverTermsAcceptedAt: serverTimestamp(),
+  }, { merge: true });
+
+  // Cria o perfil específico de motorista
   await setDoc(doc(db, 'drivers', uid), driverProfile);
 
   return driverProfile;
 };
 
+// Login no app motorista:
+// - Funciona para motoristas puros
+// - Funciona para clientes que também são motoristas (type: 'both')
+// - Se for cliente sem perfil de motorista: orienta a completar o cadastro de motorista
 export const loginDriver = async (email: string, password: string): Promise<DriverProfile> => {
   const credential = await signInWithEmailAndPassword(auth, email, password);
-  const snap = await getDoc(doc(db, 'drivers', credential.user.uid));
-  if (!snap.exists()) throw new Error('Conta de guincheiro não encontrada.');
-  return snap.data() as DriverProfile;
+  const uid = credential.user.uid;
+
+  const snap = await getDoc(doc(db, 'drivers', uid));
+  if (snap.exists()) return snap.data() as DriverProfile;
+
+  // Sem perfil de motorista — verifica se é cliente
+  const userSnap = await getDoc(doc(db, 'users', uid));
+  if (userSnap.exists()) {
+    throw new Error(
+      'Este e-mail está cadastrado como cliente ReboCar.\n\nPara trabalhar como motorista parceiro, toque em "Ainda não é parceiro? Cadastre-se" e use este mesmo e-mail e senha — você não precisará criar uma nova conta.'
+    );
+  }
+
+  throw new Error('Conta de motorista não encontrada. Verifique seu e-mail e senha.');
 };
 
 export const logoutDriver = () => signOut(auth);
