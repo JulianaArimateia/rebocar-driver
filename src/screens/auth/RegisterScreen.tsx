@@ -64,20 +64,48 @@ export default function RegisterScreen() {
 
   const [loading, setLoading] = useState(false);
 
+  const MIN_CNH_SIZE_BYTES = 40_000; // 40 KB — fotos reais de documento são maiores que isso
+
+  const validateCNHPhoto = async (uri: string): Promise<boolean> => {
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      return blob.size >= MIN_CNH_SIZE_BYTES;
+    } catch {
+      return true; // Em caso de erro na verificação, aceita e deixa revisão manual
+    }
+  };
+
   const pickCNHPhoto = async (side: 'front' | 'back') => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.7,
+      quality: 0.8, // qualidade maior para garantir leitura do documento
     });
     if (!result.canceled) {
-      if (side === 'front') setCnhFrontUri(result.assets[0].uri);
-      else setCnhBackUri(result.assets[0].uri);
+      const uri = result.assets[0].uri;
+      const valid = await validateCNHPhoto(uri);
+      if (!valid) {
+        Alert.alert(
+          'Foto inválida',
+          'A imagem enviada parece ser muito pequena para ser uma foto de documento. Por favor, tire uma foto nítida e bem iluminada da sua CNH.'
+        );
+        return;
+      }
+      if (side === 'front') setCnhFrontUri(uri);
+      else setCnhBackUri(uri);
     }
   };
 
   const handleStep1Next = () => {
     if (!name.trim() || !cpf.trim() || !birthDate.trim() || !email.trim()) {
       Alert.alert('Campos obrigatórios', 'Preencha todos os campos pessoais.');
+      return;
+    }
+    if (!cnhFrontUri || !cnhBackUri) {
+      Alert.alert(
+        'Fotos obrigatórias',
+        'Envie as fotos da frente e do verso da sua CNH. As imagens serão verificadas pela nossa equipe antes de você começar a receber chamados.'
+      );
       return;
     }
     if (!accepted) {

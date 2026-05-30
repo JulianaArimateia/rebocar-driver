@@ -3,17 +3,19 @@ import {
   View,
   Text,
   ScrollView,
+  FlatList,
   TouchableOpacity,
   StyleSheet,
   Switch,
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { auth } from '../../config/firebase';
-import { getDriverProfile } from '../../services/authService';
+import { getDriverProfile, VerificationStatus } from '../../services/authService';
 import { updateDriverStatus, updateDriverLocation, getDriverEarnings, getDriverHistory } from '../../services/driverService';
 import { ServiceRequest } from '../../types';
 
@@ -31,8 +33,11 @@ const formatDate = (timestamp: any): string => {
 export default function DashboardScreen() {
   const [driverName, setDriverName] = useState('Parceiro');
   const [isOnline, setIsOnline] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>('pending');
   const [earnings, setEarnings] = useState({ week: 0, total: 0, services: 0 });
   const [recentServices, setRecentServices] = useState<ServiceRequest[]>([]);
+  const [allServices, setAllServices] = useState<ServiceRequest[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [togglingStatus, setTogglingStatus] = useState(false);
@@ -52,8 +57,10 @@ export default function DashboardScreen() {
     if (profile) {
       setDriverName(profile.name);
       setIsOnline(profile.status === 'available');
+      setVerificationStatus(profile.verificationStatus ?? 'pending');
     }
     setEarnings(earningsData);
+    setAllServices(history);
     setRecentServices(history.slice(0, 5));
   }, []);
 
@@ -68,6 +75,13 @@ export default function DashboardScreen() {
   };
 
   const handleToggleOnline = async (value: boolean) => {
+    if (verificationStatus !== 'approved') {
+      Alert.alert(
+        'Conta em verificação',
+        'Sua CNH está sendo analisada pela nossa equipe. Você poderá ficar online assim que a verificação for concluída (até 24 horas).\n\nSe já passou mais de 24 horas, entre em contato: parceiros@rebocar.com.br'
+      );
+      return;
+    }
     setTogglingStatus(true);
     const uid = auth.currentUser?.uid;
     if (!uid) return;
@@ -104,7 +118,49 @@ export default function DashboardScreen() {
     );
   }
 
+  const STATUS_LABELS: Record<string, string> = {
+    completed: 'Concluído', accepted: 'Aceito', on_the_way: 'A Caminho',
+    arrived: 'Chegou', cancelled: 'Cancelado', waiting: 'Aguardando',
+  };
+
   return (
+    <>
+    {/* Modal histórico completo */}
+    <Modal visible={showHistory} animationType="slide" transparent>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalSheet}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Histórico Completo</Text>
+            <TouchableOpacity onPress={() => setShowHistory(false)}>
+              <Ionicons name="close" size={22} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={allServices}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+            ListEmptyComponent={<Text style={{ color: '#555', textAlign: 'center', marginTop: 40 }}>Nenhum serviço realizado ainda.</Text>}
+            renderItem={({ item }) => (
+              <View style={styles.modalItem}>
+                <View style={styles.serviceIconBox}>
+                  <Ionicons name="car-sport" size={18} color="#F5C518" />
+                </View>
+                <View style={styles.serviceInfo}>
+                  <Text style={styles.serviceType}>{item.vehicleModel} • {item.vehiclePlate}</Text>
+                  <Text style={styles.serviceDate}>{formatDate(item.createdAt)}</Text>
+                  <Text style={{ fontSize: 11, color: '#888' }}>{STATUS_LABELS[item.status] ?? item.status}</Text>
+                </View>
+                <View style={styles.servicePriceBox}>
+                  <Text style={styles.servicePrice}>{formatCurrency((item.estimatedPrice || 145) * 0.85)}</Text>
+                  <Text style={{ fontSize: 9, color: '#555' }}>líquido</Text>
+                </View>
+              </View>
+            )}
+          />
+        </View>
+      </View>
+    </Modal>
+
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
@@ -127,6 +183,30 @@ export default function DashboardScreen() {
           </Text>
         </View>
       </View>
+
+      {/* Verificação de CNH */}
+      {verificationStatus === 'pending' && (
+        <View style={styles.verificationBanner}>
+          <Ionicons name="time-outline" size={20} color="#F5C518" />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.verificationTitle}>CNH em verificação</Text>
+            <Text style={styles.verificationSub}>
+              Sua documentação está sendo analisada. Você poderá receber chamados em até 24 horas após a aprovação.
+            </Text>
+          </View>
+        </View>
+      )}
+      {verificationStatus === 'rejected' && (
+        <View style={[styles.verificationBanner, styles.verificationRejected]}>
+          <Ionicons name="alert-circle-outline" size={20} color="#FF4444" />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.verificationTitle, { color: '#FF4444' }]}>Verificação reprovada</Text>
+            <Text style={styles.verificationSub}>
+              As fotos da CNH não foram aceitas. Entre em contato: parceiros@rebocar.com.br
+            </Text>
+          </View>
+        </View>
+      )}
 
       {/* Online toggle */}
       <View style={styles.toggleCard}>
@@ -198,8 +278,8 @@ export default function DashboardScreen() {
       {/* Recent history */}
       <View style={styles.historyHeader}>
         <Text style={styles.historyTitle}>Histórico Recente</Text>
-        <TouchableOpacity onPress={() => Alert.alert('Histórico', 'Funcionalidade em breve.')}>
-          <Text style={styles.seeAll}>Ver tudo →</Text>
+        <TouchableOpacity onPress={() => setShowHistory(true)}>
+          <Text style={styles.seeAll}>Ver tudo ({allServices.length}) →</Text>
         </TouchableOpacity>
       </View>
 
@@ -229,6 +309,7 @@ export default function DashboardScreen() {
         ))
       )}
     </ScrollView>
+    </>
   );
 }
 
@@ -373,4 +454,47 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   paidText: { fontSize: 9, color: '#27AE60', fontWeight: '700' },
+  verificationBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: 'rgba(245,197,24,0.1)',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(245,197,24,0.3)',
+  },
+  verificationRejected: {
+    backgroundColor: 'rgba(255,68,68,0.1)',
+    borderColor: 'rgba(255,68,68,0.3)',
+  },
+  verificationTitle: { fontSize: 13, fontWeight: '700', color: '#F5C518', marginBottom: 3 },
+  verificationSub: { fontSize: 11, color: '#888', lineHeight: 16 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  modalSheet: {
+    backgroundColor: '#0D1B2A',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '85%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1C2D3E',
+  },
+  modalTitle: { fontSize: 17, fontWeight: '800', color: '#fff' },
+  modalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1C2D3E',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    gap: 12,
+  },
 });

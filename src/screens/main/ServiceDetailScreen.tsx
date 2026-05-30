@@ -8,6 +8,7 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -33,12 +34,32 @@ export default function ServiceDetailScreen() {
   const route = useRoute<RouteProps>();
   const { requestId } = route.params;
   const [request, setRequest] = useState<ServiceRequest | null>(null);
+  const [clientPhone, setClientPhone] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const openCall = (phone: string) => {
+    const clean = phone.replace(/\D/g, '');
+    Linking.openURL(`tel:+55${clean}`);
+  };
+
+  const openWhatsApp = (phone: string, name: string) => {
+    const clean = phone.replace(/\D/g, '');
+    const msg = encodeURIComponent(`Olá ${name}, sou o guincheiro responsável pelo seu atendimento ReboCar.`);
+    Linking.openURL(`https://wa.me/55${clean}?text=${msg}`).catch(() => {
+      Linking.openURL(`sms:+55${clean}`);
+    });
+  };
+
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'requests', requestId), (snap) => {
+    const unsub = onSnapshot(doc(db, 'requests', requestId), async (snap) => {
       if (snap.exists()) {
-        setRequest({ id: snap.id, ...snap.data() } as ServiceRequest);
+        const req = { id: snap.id, ...snap.data() } as ServiceRequest;
+        setRequest(req);
+        // Carrega telefone do cliente
+        if (req.clientId && !clientPhone) {
+          const userSnap = await getDoc(doc(db, 'users', req.clientId));
+          if (userSnap.exists()) setClientPhone(userSnap.data().phone || '');
+        }
       }
     });
     return unsub;
@@ -99,11 +120,17 @@ export default function ServiceDetailScreen() {
             <Text style={styles.clientRating}>★ 4.9</Text>
           </View>
           <View style={styles.clientActions}>
-            <TouchableOpacity style={styles.actionBtn} onPress={() => Alert.alert('Chat', 'Funcionalidade em breve.')}>
-              <Ionicons name="chatbubble-ellipses-outline" size={18} color="#aaa" />
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => clientPhone ? openWhatsApp(clientPhone, request?.clientName || 'Cliente') : Alert.alert('Indisponível', 'Telefone do cliente não disponível.')}
+            >
+              <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionBtn} onPress={() => Alert.alert('Ligar', 'Funcionalidade em breve.')}>
-              <Ionicons name="call-outline" size={18} color="#aaa" />
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => clientPhone ? openCall(clientPhone) : Alert.alert('Indisponível', 'Telefone do cliente não disponível.')}
+            >
+              <Ionicons name="call-outline" size={18} color="#2980B9" />
             </TouchableOpacity>
           </View>
         </View>

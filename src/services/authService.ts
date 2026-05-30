@@ -22,6 +22,8 @@ export const requestDataDeletion = async (uid: string, reason?: string): Promise
   });
 };
 
+export type VerificationStatus = 'pending' | 'approved' | 'rejected';
+
 export interface DriverProfile {
   id: string;
   name: string;
@@ -37,6 +39,7 @@ export interface DriverProfile {
   pixKeyType: 'cpf' | 'email' | 'phone' | 'random' | 'cnpj';
   type: 'driver';
   status: 'available' | 'busy' | 'offline';
+  verificationStatus: VerificationStatus;
   rating: number;
   totalServices: number;
   termsAcceptedAt: any;
@@ -118,6 +121,7 @@ export const registerDriver = async (data: {
     pixKeyType: data.pixKeyType,
     type: 'driver',
     status: 'offline',
+    verificationStatus: 'pending', // Conta bloqueada até revisão manual das fotos da CNH
     rating: 5.0,
     totalServices: 0,
     termsAcceptedAt: serverTimestamp(),

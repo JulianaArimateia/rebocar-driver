@@ -6,13 +6,14 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../config/firebase';
 import { RequestsStackParamList, ServiceRequest, Location as LocType } from '../../types';
 import { updateRequestStatus, updateDriverLocation, haversineDistance } from '../../services/driverService';
@@ -26,12 +27,27 @@ export default function NavigationScreen() {
   const { requestId } = route.params;
   const mapRef = useRef<MapView>(null);
   const [request, setRequest] = useState<ServiceRequest | null>(null);
+  const [clientPhone, setClientPhone] = useState('');
   const [driverLocation, setDriverLocation] = useState<LocType | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const openCall = (phone: string) => Linking.openURL(`tel:+55${phone.replace(/\D/g, '')}`);
+  const openWhatsApp = (phone: string, name: string) => {
+    const clean = phone.replace(/\D/g, '');
+    const msg = encodeURIComponent(`Olá ${name}, sou o guincheiro. Estou a caminho do local indicado no app ReboCar.`);
+    Linking.openURL(`https://wa.me/55${clean}?text=${msg}`).catch(() => Linking.openURL(`sms:+55${clean}`));
+  };
+
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'requests', requestId), (snap) => {
-      if (snap.exists()) setRequest({ id: snap.id, ...snap.data() } as ServiceRequest);
+    const unsub = onSnapshot(doc(db, 'requests', requestId), async (snap) => {
+      if (snap.exists()) {
+        const req = { id: snap.id, ...snap.data() } as ServiceRequest;
+        setRequest(req);
+        if (req.clientId && !clientPhone) {
+          const userSnap = await getDoc(doc(db, 'users', req.clientId));
+          if (userSnap.exists()) setClientPhone(userSnap.data().phone || '');
+        }
+      }
     });
     return unsub;
   }, [requestId]);
@@ -123,8 +139,13 @@ export default function NavigationScreen() {
               {request.vehicleModel} • {request.vehiclePlate}
             </Text>
           </View>
-          <TouchableOpacity style={styles.callBtn} onPress={() => Alert.alert('Ligar', 'Funcionalidade em breve.')}>
-            <Ionicons name="call-outline" size={18} color="#666" />
+          <TouchableOpacity
+            style={styles.callBtn}
+            onPress={() => clientPhone
+              ? openCall(clientPhone)
+              : Alert.alert('Indisponível', 'Telefone do cliente não disponível.')}
+          >
+            <Ionicons name="call-outline" size={18} color="#2980B9" />
           </TouchableOpacity>
         </View>
       )}
